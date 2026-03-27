@@ -1,0 +1,58 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+      
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.3.4
+      
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.2.1
+          haxelib install openfl 9.4.0
+          haxelib install flixel 5.6.1
+          haxelib install flixel-addons 3.2.3
+          haxelib install flixel-tools 1.5.1
+          haxelib install flixel-ui 2.6.2
+          haxelib install actuate 1.9.0
+          haxelib git linc_luajit https://github.com/Sirox228/linc_luajit.git
+          haxelib git extension-androidtools https://github.com/MAJigsaw77/extension-androidtools.git
+          haxelib git hxCodec https://github.com/MAJigsaw77/hxCodec.git
+      
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      
+      - name: Setup Android NDK r15c
+        run: |
+          wget https://dl.google.com/android/repository/android-ndk-r15c-linux-x86_64.zip
+          unzip android-ndk-r15c-linux-x86_64.zip
+          echo "ANDROID_NDK_ROOT=$PWD/android-ndk-r15c" >> $GITHUB_ENV
+      
+      - name: Build APK
+        run: |
+          lime setup android
+          lime build android -final
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnf-android-apk
+          path: export/release/android/bin/app/build/outputs/apk/debug/*.apk
